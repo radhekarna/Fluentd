@@ -1,0 +1,70 @@
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: {{ .Values.ConfigMap.name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    addonmanager.kubernetes.io/mode: Reconcile
+data:
+  output.conf: |-
+    <filter kubernetes.**>
+      @type kubernetes_metadata
+    </filter>
+    <filter kubernetes.**>
+      @type record_transformer
+      remove_keys $['kubernetes']['master_url'], $['kubernetes']['namespace_id'], $['kubernetes']['pod_id'], $['kubernetes']['labels']['app'], $['kubernetes']['labels']['app_kubernetes_io/name'], $['kubernetes']['labels']['app_kubernetes_io/branch'], $['kubernetes']['labels']['app_kubernetes_io/part-of'], $['kubernetes']['labels']['security_istio_io/tlsMode'], $['kubernetes']['labels']['security_istio_io/canonical-name'], $['kubernetes']['labels']['service_istio_io/canonical-revision'], $['kubernetes']['labels']['service_istio_io/canonical-name'],  $['kubernetes']['namespace_labels']['istio-injection'],  $['kubernetes']['namespace_labels']['kubernetes_io/metadata_name'], $['kubernetes']['container_name'],  $['kubernetes']['labels']['pod-template-hash'], $['docker']['container_id']
+    </filter>
+    <filter **>
+      @type record_transformer
+      remove_keys stream
+    </filter>
+    {{- range .Values.serviceNames }}
+     <match kubernetes.var.log.containers.{{.}}**.log>
+      @id {{.}}
+      @type record_transformer
+      remove_keys tag
+      @type elasticsearch
+      @log_level info
+      type_name {{ $.Values.ConfigMap.type_name }}
+      include_tag_key {{ $.Values.ConfigMap.include_tag_key }}
+      include_timestamp {{ $.Values.ConfigMap.include_timestamp }}
+      time_key_exclude_timestamp false
+      host {{ $.Values.ConfigMap.host }}
+      port {{ $.Values.ConfigMap.port }}
+      scheme {{ $.Values.ConfigMap.scheme }}
+      ssl_version {{ $.Values.ConfigMap.ssl_version }}
+      ssl_verify {{ $.Values.ConfigMap.ssl_verify }}
+      user {{ $.Values.ConfigMap.user }}
+      password {{ $.Values.ConfigMap.password }}
+      logstash_format {{ $.Values.ConfigMap.logstash_format }}
+      {{- if eq $.Values.project.name "ms" }}
+      index_name ms-logs.{{.}}.%Y-%m-%d
+      {{- end }}
+      {{- if eq $.Values.project.name "gny" }}
+      index_name gny-logs.{{.}}.%Y-%m-%d
+      {{- end }}
+      {{- if eq $.Values.project.name "midas" }}
+      index_name mds-logs.{{.}}.%Y-%m-%d
+      {{- end }}
+      reconnect_on_error {{ $.Values.ConfigMap.reconnect_on_error }}
+      reload_on_failure {{ $.Values.ConfigMap.reload_on_failure }}
+      reload_connections {{ $.Values.ConfigMap.reload_connections }}
+      slow_flush_log_threshold {{ $.Values.ConfigMap.slow_flush_log_threshold }}
+      <buffer tag, time>
+        @type file
+        path /var/log/fluentd-buffers/{{.}}
+        total_limit_size {{ $.Values.ConfigMap.total_limit_size }}
+        flush_mode {{ $.Values.ConfigMap.flush_mode }}
+        retry_type {{ $.Values.ConfigMap.retry_type }}
+        flush_thread_count {{ $.Values.ConfigMap.flush_thread_count }}
+        flush_interval {{ $.Values.ConfigMap.flush_interval }}
+        retry_timeout {{ $.Values.ConfigMap.retry_timeout }}
+        retry_max_interval {{ $.Values.ConfigMap.retry_max_interval }}
+        chunk_limit_size {{ $.Values.ConfigMap.chunk_limit_size }}
+        queue_limit_length {{ $.Values.ConfigMap.queue_limit_length }}
+        overflow_action {{ $.Values.ConfigMap.overflow_action }}
+        timekey {{ $.Values.ConfigMap.timekey }}
+      </buffer>
+     </match>
+    {{- end }}

@@ -1,0 +1,111 @@
+kind: DaemonSet
+apiVersion: apps/v1
+metadata:
+  name: {{ .Values.service.name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.service.name }}
+    kubernetes.io/cluster-service: 'true'
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Values.service.name }}
+      kubernetes.io/cluster-service: 'true'
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app.kubernetes.io/name: {{ .Values.service.name }}
+        kubernetes.io/cluster-service: 'true'
+      annotations:
+        prometheus.io/path: /api/v1/metrics/prometheus
+        prometheus.io/port: '2020'
+        prometheus.io/scrape: 'true'
+    spec:
+      restartPolicy: Always
+      serviceAccountName: {{ .Values.service.name }}
+      imagePullSecrets:
+        - name: acrsecret
+      schedulerName: default-scheduler
+      terminationGracePeriodSeconds: 10
+      securityContext: {}
+      containers:
+        - resources: {}
+          terminationMessagePath: /dev/termination-log
+          name: {{ .Values.service.name }}
+          env:
+            - name: FLUENTD_ARGS
+              value: '--no-supervisor -q'
+          securityContext:
+            privileged: true
+          ports:
+            - containerPort: 2020
+              protocol: TCP
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: {{ .Values.volumes.name1 }}
+              mountPath: {{ .Values.volumes.mountPath1 }}
+            - name: {{ .Values.volumes.name2 }}
+              readOnly: true
+              mountPath: {{ .Values.volumes.mountPath2}}
+            - name: {{ .Values.volumes.name3 }}
+              mountPath: {{ .Values.volumes.mountPath3 }}
+            - name: {{ .Values.volumes.name4 }}
+              mountPath: {{ .Values.volumes.mountPath4 }}
+            - name: {{ .Values.volumes.name5 }}
+              mountPath: {{ .Values.volumes.mountPath5 }}
+            - name: localtime
+              readOnly: true
+              mountPath: /etc/localtime
+            - name: dockercfg
+              readOnly: true
+              mountPath: /etc/sysconfig/docker
+            - name: dockerdaemoncfg
+              readOnly: true
+              mountPath: /etc/docker
+          terminationMessagePolicy: File
+          image: {{ .Values.image }}
+      serviceAccount: {{ .Values.service.name }}
+      volumes:
+        - name: {{ .Values.volumes.name1 }}
+          hostPath:
+            path: /var/log
+            type: ''
+        - name: {{ .Values.volumes.name2 }}
+          hostPath:
+            path: /var/lib/docker/containers
+            type: ''
+        - name: {{ .Values.volumes.name3 }}
+          configMap:
+            name: {{ .Values.volumes.name3 }}
+            defaultMode: 420
+        - name: {{ .Values.volumes.name4 }}
+          configMap:
+            name: {{ .Values.volumes.name6 }}
+            defaultMode: 420
+        - name: {{ .Values.volumes.name5 }}
+          configMap:
+            name: {{ .Values.volumes.name5 }}
+            defaultMode: 511
+        - name: localtime
+          hostPath:
+            path: /etc/localtime
+            type: ''
+        - name: dockercfg
+          hostPath:
+            path: /etc/sysconfig/docker
+            type: ''
+        - name: dockerdaemoncfg
+          hostPath:
+            path: /etc/docker
+            type: ''
+      dnsPolicy: ClusterFirst
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  revisionHistoryLimit: 10
