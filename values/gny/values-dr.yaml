@@ -1,0 +1,104 @@
+apiVersion: v1
+namespace: logging
+image: ybazcipaas2c355cr02.azurecr.io/fluentd:1.0.0
+host: 10.177.50.222
+
+project:
+  name: ms
+
+
+serviceNames:
+  - ms-aadhaar-service                              
+  - ms-account-service                             
+  - ms-art-service
+  - ms-baas-service    
+  - ms-baas-reprocessor-service
+  - ms-beneficiary-service                                        
+  - ms-branch-locator-service                     
+  - ms-bureau-service                          
+  - ms-casa-balance-service                         
+  - ms-casa-detail-service                         
+  - ms-collection-payment-service                   
+  - ms-consent-service                 
+  - ms-customer-eligibility-service             
+  - ms-customer-journey-service               
+  - ms-customer-journey-v2-service                  
+  - ms-customer-maintenance-service            
+  - ms-cvv-service
+  - ms-debit-card-service                             
+  - ms-dedupe-service                            
+  - ms-fcr-master-service                           
+  - ms-fd-service                           
+  - ms-fund-transfer-service                        
+  - ms-garage-service                      
+  - ms-gift-card-service                          
+  - ms-hotlist-card-service                       
+  - ms-image-service                         
+  - ms-kyc-service                               
+  - ms-lead-trigger-service 
+  - ms-location-service                             
+  - ms-loyaltypsc-service                            
+  - ms-master-data-service                           
+  - ms-mini-statement-service                       
+  - ms-mpin-service                       
+  - ms-name-resolution-service                  
+  - ms-nba-service                     
+  - ms-newgen-case-service                          
+  - ms-nominee-service                           
+  - ms-oauth-service                           
+  - ms-pan-service                                
+  - ms-product-qualifier-service               
+  - ms-product-service                   
+  - ms-rd-service                               
+  - ms-search-service                               
+  - ms-signdesk-service                              
+  - ms-td-service                            
+  - ms-transaction-search-v2-service                
+  - ms-video-kyc-service
+  
+ConfigMap:
+  name: fluentd-ms-config
+  host: 10.177.50.222
+  type_name: fluentd
+  include_tag_key: true
+  include_timestamp: true
+  time_key_exclude_timestamp: false
+  port: 9200
+  scheme: http
+  ssl_version: TLSv1_2
+  ssl_verify: false
+  user: fluentd
+  password: fluentd
+  logstash_format: false
+  reconnect_on_error: true
+  reload_on_failure: false
+  reload_connections: false
+  slow_flush_log_threshold: 25.0
+  total_limit_size: 1024MB
+  flush_mode: interval
+  retry_type: exponential_backoff
+  flush_thread_count: 20
+  flush_interval: 5s
+  retry_timeout: 1m
+  retry_max_interval: 30
+  chunk_limit_size: 10M
+  queue_limit_length: 8
+  overflow_action: drop_oldest_chunk
+  timekey: 0.1h
+
+service:
+  name: fluentd
+  role: fluentd-read
+
+volumes:
+  name1: varlog
+  mountPath1: /var/log
+  name2: varlibdockercontainers
+  mountPath2: /var/lib/docker/containers
+  name3: fluentd-main
+  mountPath3: /etc/fluent
+  name4: fluentd-config
+  mountPath4: /etc/fluent/config.d
+  name5: fluentd-ms-config
+  mountPath5: /etc/fluent/fluentd-ms-conf.d
+  name6: fluentd-es-config
